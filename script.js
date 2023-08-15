@@ -1,5 +1,6 @@
 const cityInput = document.querySelector(".city-input");
 const searchButton = document.querySelector(".search-btn");
+const locationButton = document.querySelector(".location-btn");
 const currentWeatherDiv = document.querySelector(".current-weather");
 const weatherCardsDiv = document.querySelector(".weather-cards");
 
@@ -31,13 +32,15 @@ const createWeatherCard = (cityName, weatherItem, index) => {
 const getWeatherDetails = (cityName, lat, lon) => {
     const WEATHER_API_URL = `http://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
 
-    fetch(WEATHER_API_URL).then(res => res.json()).then(data => {
-        const uniqueForecastDays = [];
-        const fiveDaysForecast = data.list.filter(forecast => {
-            const forecastDate = new Date(forecast.dt_txt).getDate();
-            if(!uniqueForecastDays.includes(forecastDate)) {
-                return uniqueForecastDays.push(forecastDate);
-            }
+    fetch(WEATHER_API_URL)
+        .then(res => res.json())
+        .then(data => {
+            const uniqueForecastDays = [];
+            const fiveDaysForecast = data.list.filter(forecast => {
+                const forecastDate = new Date(forecast.dt_txt).getDate();
+                if(!uniqueForecastDays.includes(forecastDate)) {
+                    return uniqueForecastDays.push(forecastDate);
+                }
         });
 
         //Clearing previous weather data
@@ -59,18 +62,50 @@ const getWeatherDetails = (cityName, lat, lon) => {
 }
 
 const getCityCoordinates = () => {
-    const cityName = cityInput.value.trim();
-    if(!cityName) return;
-    
+    const cityName = cityInput.value.trim(); // Get user entered city name and remove extra spaces
+    if(!cityName) return; // Return if cityName is empty
+
     const GEOCODING_API_URL = `http://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=5&appid=${API_KEY}`;
 
-    fetch(GEOCODING_API_URL).then(res => res.json()).then(data => {
-        if(!data.length) return alert(`No coordinates found for ${cityName}!`);
-        const { name, lat, lon } = data[0];
-        getWeatherDetails(name, lat, lon);
-    }).catch(() => {
+    // Get entered city coordinates (lat, lon, name) from the API response
+    fetch(GEOCODING_API_URL)
+        .then(res => res.json())
+        .then(data => {
+            if(!data.length) return alert(`No coordinates found for ${cityName}!`);
+            const { name, lat, lon } = data[0];
+            getWeatherDetails(name, lat, lon);
+    })
+    .catch(() => {
         alert("An error occurred while fetching the coordinates!");
     });
 }
 
+const getUserCoordinates = () => {
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            const { latitude, longitude } = position.coords; // Get user location's coordinates
+            const REVERSE_GEOCODING_URL = `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`;
+            
+            // Get city name from coordinates using reverse geocoding APi
+            fetch(REVERSE_GEOCODING_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if(!data.length) return alert(`No coordinates found for ${cityName}!`);
+                    const { name } = data[0];
+                    getWeatherDetails(name, latitude, longitude);
+            })
+            .catch(() => {
+                alert("An error occurred while fetching the city!");
+            });
+        },
+        error => { // Show alert if user denied the location permission
+            if(error.code === error.PERMISSION_DENIED) {
+                alert("Geolocation request denied. Please reset location permission to grand access again.")
+            }
+        }
+    );
+}
+
+locationButton.addEventListener("click", getUserCoordinates);
 searchButton.addEventListener("click", getCityCoordinates);
+cityInput.addEventListener("keyup", e => e.key === "Enter" && getCityCoordinates());

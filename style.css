@@ -65,6 +65,10 @@ h1 {
 .weather-input .location-btn {
     background: #6c757d;
 }
+button:hover {
+    outline: 2px solid white;
+    outline-offset: -2px;
+}
 .weather-data {
     width: 100%;
 }
@@ -115,7 +119,6 @@ h1 {
     max-width: 70px;
     margin: 5px 0 -12px 0;
 }
-
 @media (max-width: 1400px) {
     .weather-data .current-weather {
         padding: 20px;
